@@ -1365,6 +1365,10 @@ class UrlEncoder extends EncodeDecoderBase {
 	 * @return void
 	 */
 	protected function storeInUrlCache() {
+
+		// Sven: deactivate urlcache for all pages because it's disfunctioning with formhandler payment formularsd (chash)
+		return;
+
 		if ($this->canCacheUrl($this->originalUrl)) {
 			$cacheEntry = $this->cache->getUrlFromCacheByOriginalUrl($this->rootPageId, $this->originalUrl);
 			/** @var \DmitryDulepov\Realurl\Cache\UrlCacheEntry $cacheEntry */
