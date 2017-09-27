@@ -30,6 +30,7 @@
 namespace DmitryDulepov\Realurl;
 
 use DmitryDulepov\Realurl\Cache\CacheInterface;
+use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
@@ -57,6 +58,9 @@ abstract class EncodeDecoderBase {
 
 	/** @var array */
 	protected $ignoredUrlParameters = array();
+
+	/** @var \TYPO3\CMS\Core\Log\Logger */
+	protected $logger;
 
 	/** @var PageRepository */
 	protected $pageRepository = NULL;
@@ -86,11 +90,13 @@ abstract class EncodeDecoderBase {
 	public function __construct() {
 		Utility::checkAndPerformRequiredUpdates();
 		$this->databaseConnection = $GLOBALS['TYPO3_DB'];
+		$this->logger = GeneralUtility::makeInstance(LogManager::class)->getLogger(get_class($this));
 		$this->tsfe = $GLOBALS['TSFE'];
 		// Warning! It is important to init the new object and not reuse any existing object
 		// $this->pageRepository->sys_language_uid must stay 0 because we will do overlays manually
 		$this->pageRepository = GeneralUtility::makeInstance('TYPO3\\CMS\\Frontend\\Page\\PageRepository');
 		$this->pageRepository->init(FALSE);
+		self::overwritePageTitleFieldsFromConfiguration();
 	}
 
 	/**
@@ -205,6 +211,23 @@ abstract class EncodeDecoderBase {
 			$result = ($GLOBALS['BE_USER']->workspace !== 0);
 		}
 		return $result;
+	}
+
+	/**
+	 * Overwrites page title fields from extension configuration. This function
+	 * is used from the constructor and also from DataHandler hook, thus made
+	 * public.
+	 *
+	 * @return void
+	 */
+	public static function overwritePageTitleFieldsFromConfiguration() {
+		$configuration = @unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf']['realurl']);
+		if (!empty($configuration['segTitleFieldList'])) {
+			$segTitleFieldList = GeneralUtility::trimExplode(',', $configuration['segTitleFieldList']);
+			if (count($segTitleFieldList) > 0) {
+				self::$pageTitleFields = $segTitleFieldList;
+			}
+		}
 	}
 
 	/**
